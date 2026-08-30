@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
@@ -15,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -36,8 +39,19 @@ jobs:
       - name: Run Docker container
         run: |
           docker run -d -p 8000:8000 --name cats-dogs-app cats-dogs-mlops
-          sleep 20
 
       - name: Health check
         run: |
-          curl --fail http://127.0.0.1:8000/health
+          for i in {1..10}; do
+            if curl --fail http://127.0.0.1:8000/health; then
+              echo "Health check passed"
+              exit 0
+            fi
+
+            echo "Waiting for API..."
+            sleep 10
+          done
+
+          echo "Health check failed"
+          docker logs cats-dogs-app
+          exit 1
